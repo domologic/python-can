@@ -6,7 +6,6 @@ import logging
 log = logging.getLogger(__name__)
 
 
-
 def _compose_arbitration_id(message: can.Message) -> int:
     can_id = message.arbitration_id
     if message.is_extended_id:
@@ -19,7 +18,6 @@ def _compose_arbitration_id(message: can.Message) -> int:
         log.debug("sending error frame")
         can_id |= CAN_ERR_FLAG
     return can_id
-
 
 
 def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
@@ -35,7 +33,9 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
         data = bytearray.fromhex(parts[2])
         can_dlc = len(data)
         print(f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}")
-        can_message = can.Message(timestamp=timestamp, arbitration_id=can_id, data=data, dlc=can_dlc)
+        can_message = can.Message(
+            timestamp=timestamp, arbitration_id=can_id, data=data, dlc=can_dlc
+        )
         return can_message
 
 
@@ -46,14 +46,12 @@ def convert_can_message_to_ascii_message(can_message: can.Message) -> str:
     # Note: seems like we cannot add CANFD_BRS (bitrate_switch) and CANFD_ESI (error_state_indicator) flags
     data = can_message.data
     length = can_message.dlc
-    bytes_string = ' '.join('{:x}'.format(x) for x in data[0:length])
+    bytes_string = " ".join("{:x}".format(x) for x in data[0:length])
     ascii_message = f"< send {can_id:X} {length:X} {bytes_string} >"
     return ascii_message
 
 
-
 class SocketCanDaemonBus(can.BusABC):
-
     def __init__(self, channel, host, port, can_filters=None, **kwargs):
         self.__host = host
         self.__port = port
@@ -68,7 +66,9 @@ class SocketCanDaemonBus(can.BusABC):
         try:
             # get all sockets that are ready (can be a list with a single value
             # being self.socket or an empty list if self.socket is not ready)
-            ready_receive_sockets, _, _ = select.select([self.__socket], [], [], timeout)
+            ready_receive_sockets, _, _ = select.select(
+                [self.__socket], [], [], timeout
+            )
         except socket.error as exc:
             # something bad happened (e.g. the interface went down)
             raise can.CanError(f"Failed to receive: {exc}")
@@ -76,30 +76,25 @@ class SocketCanDaemonBus(can.BusABC):
         if ready_receive_sockets:  # not empty
             ascii_message = self.__socket.recv(1024)
             print(f"Received Ascii Message: {ascii_message}")
-            can_message = convert_ascii_message_to_can_message(ascii_message.decode("ascii"))
+            can_message = convert_ascii_message_to_can_message(
+                ascii_message.decode("ascii")
+            )
             return can_message, False
 
         # socket wasn't readable or timeout occurred
         return None, False
 
-
     def _tcp_send(self, message: str):
         print(f"Sending Tcp Message: '{message}'")
         self.__socket.sendall(message.encode("ascii"))
 
-
     def send(self, message, timeout=None):
         print(f"Sending Message on bus: {message}")
-        #for attr in dir(message):
+        # for attr in dir(message):
         #    print("message.%s = %r" % (attr, getattr(message, attr)))
         ascii_message = convert_can_message_to_ascii_message(message)
         self._tcp_send(ascii_message)
 
-
     def shutdown(self):
         self.stop_all_periodic_tasks()
         self.__socket.close()
-
-
-
-
