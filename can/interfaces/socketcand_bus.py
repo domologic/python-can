@@ -32,7 +32,9 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
 
         data = bytearray.fromhex(parts[2])
         can_dlc = len(data)
-        log.debug(f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}")
+        log.debug(
+            f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}"
+        )
         can_message = can.Message(
             timestamp=timestamp, arbitration_id=can_id, data=data, dlc=can_dlc
         )
