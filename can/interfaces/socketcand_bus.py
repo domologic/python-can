@@ -25,7 +25,7 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
         log.warn(f"Could not parse ascii message: {ascii_message}")
         return None
     else:
-        print(f"Converting ascii message: {ascii_message}")
+        log.debug(f"Converting ascii message: {ascii_message}")
         frame_string = ascii_message.removeprefix("< frame ").removesuffix(" >")
         parts = frame_string.split(" ", 3)
         can_id, timestamp = int(parts[0], 16), float(parts[1])
@@ -62,7 +62,7 @@ class SocketCanDaemonBus(can.BusABC):
         super().__init__(channel=channel, can_filters=can_filters)
 
     def _recv_internal(self, timeout):
-        print(f"Receiving on socketcand bus")
+        log.debug(f"Receiving on socketcand bus")
         try:
             # get all sockets that are ready (can be a list with a single value
             # being self.socket or an empty list if self.socket is not ready)
@@ -75,7 +75,7 @@ class SocketCanDaemonBus(can.BusABC):
 
         if ready_receive_sockets:  # not empty
             ascii_message = self.__socket.recv(1024)
-            print(f"Received Ascii Message: {ascii_message}")
+            log.debug(f"Received Ascii Message: {ascii_message}")
             can_message = convert_ascii_message_to_can_message(
                 ascii_message.decode("ascii")
             )
@@ -85,11 +85,11 @@ class SocketCanDaemonBus(can.BusABC):
         return None, False
 
     def _tcp_send(self, message: str):
-        print(f"Sending Tcp Message: '{message}'")
+        log.debug(f"Sending Tcp Message: '{message}'")
         self.__socket.sendall(message.encode("ascii"))
 
     def send(self, message, timeout=None):
-        print(f"Sending Message on bus: {message}")
+        log.debug(f"Sending Message on bus: {message}")
         # for attr in dir(message):
         #    print("message.%s = %r" % (attr, getattr(message, attr)))
         ascii_message = convert_can_message_to_ascii_message(message)
