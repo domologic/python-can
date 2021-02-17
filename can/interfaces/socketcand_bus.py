@@ -32,7 +32,7 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
 
         data = bytearray.fromhex(parts[2])
         can_dlc = len(data)
-        print(f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}")
+        log.debug(f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}")
         can_message = can.Message(
             timestamp=timestamp, arbitration_id=can_id, data=data, dlc=can_dlc
         )
@@ -90,8 +90,6 @@ class SocketCanDaemonBus(can.BusABC):
 
     def send(self, message, timeout=None):
         log.debug(f"Sending Message on bus: {message}")
-        # for attr in dir(message):
-        #    print("message.%s = %r" % (attr, getattr(message, attr)))
         ascii_message = convert_can_message_to_ascii_message(message)
         self._tcp_send(ascii_message)
 
