@@ -5,7 +5,7 @@ import logging
 import time
 
 log = logging.getLogger(__name__)
-
+log.setLevel(logging.DEBUG)
 
 def _compose_arbitration_id(message: can.Message) -> int:
     can_id = message.arbitration_id
