@@ -93,7 +93,7 @@ class SocketCanDaemonBus(can.BusABC):
 
         if ready_receive_sockets:  # not empty
             ascii_message = self.__socket.recv(1024)
-            log.debug(f"Received Ascii Message: {ascii_message}")
+            log.info(f"Received Ascii Message: {ascii_message}")
             can_message = convert_ascii_message_to_can_message(
                 ascii_message.decode("ascii")
             )
