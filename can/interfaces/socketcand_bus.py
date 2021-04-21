@@ -60,7 +60,9 @@ def connect_to_server(s, host, port):
         except Exception as e:
             log.warning(f"Failed to connect to server: {type(e)} Message: {e}")
             now = time.time() * 1000
-    raise TimeoutError(f"connect_to_server: Failed to connect server for {timeout_ms} ms")
+    raise TimeoutError(
+        f"connect_to_server: Failed to connect server for {timeout_ms} ms"
+    )
 
 
 class SocketCanDaemonBus(can.BusABC):
@@ -69,7 +71,9 @@ class SocketCanDaemonBus(can.BusABC):
         self.__port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         connect_to_server(self.__socket, self.__host, self.__port)
-        log.info(f"SocketCanDaemonBus: connected with address {self.__socket.getsockname()}")
+        log.info(
+            f"SocketCanDaemonBus: connected with address {self.__socket.getsockname()}"
+        )
         self._tcp_send(f"< open {channel} >")
         self._tcp_send(f"< rawmode >")
         super().__init__(channel=channel, can_filters=can_filters)
