@@ -25,16 +25,12 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
         log.warning(f"Could not parse ascii message: {ascii_message}")
         return None
     else:
-        # log.debug(f"Converting ascii message: {ascii_message}")
         frame_string = ascii_message.removeprefix("< frame ").removesuffix(" >")
         parts = frame_string.split(" ", 3)
         can_id, timestamp = int(parts[0], 16), float(parts[1])
 
         data = bytearray.fromhex(parts[2])
         can_dlc = len(data)
-        # log.debug(
-        #    f"CanID {can_id:X}, Timestamp: {timestamp}, dlc: {can_dlc}, data: {data}"
-        # )
         can_message = can.Message(
             timestamp=timestamp, arbitration_id=can_id, data=data, dlc=can_dlc
         )
@@ -64,7 +60,6 @@ class SocketCanDaemonBus(can.BusABC):
         super().__init__(channel=channel, can_filters=can_filters)
 
     def _recv_internal(self, timeout):
-        # log.debug(f"Receiving on socketcand bus")
         try:
             # get all sockets that are ready (can be a list with a single value
             # being self.socket or an empty list if self.socket is not ready)
@@ -77,7 +72,7 @@ class SocketCanDaemonBus(can.BusABC):
 
         if ready_receive_sockets:  # not empty
             ascii_message = self.__socket.recv(1024)
-            # log.debug(f"Received Ascii Message: {ascii_message}")
+            log.debug(f"Received Ascii Message: {ascii_message}")
             can_message = convert_ascii_message_to_can_message(
                 ascii_message.decode("ascii")
             )
@@ -87,11 +82,10 @@ class SocketCanDaemonBus(can.BusABC):
         return None, False
 
     def _tcp_send(self, message: str):
-        # log.debug(f"Sending Tcp Message: '{message}'")
+        log.debug(f"Sending Tcp Message: '{message}'")
         self.__socket.sendall(message.encode("ascii"))
 
     def send(self, message, timeout=None):
-        # log.debug(f"Sending Message on bus: {message}")
         ascii_message = convert_can_message_to_ascii_message(message)
         self._tcp_send(ascii_message)
 
