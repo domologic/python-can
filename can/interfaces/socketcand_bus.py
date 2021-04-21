@@ -2,6 +2,7 @@ import can
 import socket
 import select
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
