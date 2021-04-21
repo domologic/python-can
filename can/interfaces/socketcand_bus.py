@@ -49,12 +49,27 @@ def convert_can_message_to_ascii_message(can_message: can.Message) -> str:
     return ascii_message
 
 
+def connect_to_server(s, host, port):
+    timeout_ms = 10000
+    now = time.time() * 1000
+    end_time = now + timeout_ms
+    while now < end_time:
+        try:
+            s.connect((host, port))
+            return
+        except Exception as e:
+            log.warning(f"Failed to connect to server: {type(e)} Message: {e}")
+            now = time.time() * 1000
+    raise TimeoutError(f"connect_to_server: Failed to connect server for {timeout_ms} ms")
+
+
 class SocketCanDaemonBus(can.BusABC):
     def __init__(self, channel, host, port, can_filters=None, **kwargs):
         self.__host = host
         self.__port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__socket.connect((self.__host, self.__port))
+        connect_to_server(self.__socket, self.__host, self.__port)
+        log.info(f"SocketCanDaemonBus: connected with address {self.__socket.getsockname()}")
         self._tcp_send(f"< open {channel} >")
         self._tcp_send(f"< rawmode >")
         super().__init__(channel=channel, can_filters=can_filters)
