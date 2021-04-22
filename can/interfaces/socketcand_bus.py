@@ -89,10 +89,10 @@ class SocketCanDaemonBus(can.BusABC):
             ready_receive_sockets, _, _ = select.select(
                 [self.__socket], [], [], timeout
             )
-        except socket.error as exc:
+        except Exception as exc:
             # something bad happened (e.g. the interface went down)
-            log.error(f"Failed to receive: {exc}")
-            raise can.CanError(f"Failed to receive: {exc}")
+            log.error(f"Failed to receive: {exc}  {traceback.format_exc()}")
+            raise can.CanError(f"Failed to receive: {exc}  {traceback.format_exc()}")
 
         try:
             if ready_receive_sockets:  # not empty
