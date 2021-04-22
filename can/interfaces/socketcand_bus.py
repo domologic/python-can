@@ -29,7 +29,8 @@ def convert_ascii_message_to_can_message(ascii_message: str) -> can.Message:
         log.warning(f"Could not parse ascii message: {ascii_message}")
         return None
     else:
-        frame_string = ascii_message.removeprefix("< frame ").removesuffix(" >")
+        # frame_string = ascii_message.removeprefix("< frame ").removesuffix(" >")
+        frame_string = ascii_message[8:-2]
         parts = frame_string.split(" ", 3)
         can_id, timestamp = int(parts[0], 16), float(parts[1])
 
