@@ -3,6 +3,8 @@ import socket
 import select
 import logging
 import time
+import traceback
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -89,18 +91,23 @@ class SocketCanDaemonBus(can.BusABC):
             )
         except socket.error as exc:
             # something bad happened (e.g. the interface went down)
+            log.error(f"Failed to receive: {exc}")
             raise can.CanError(f"Failed to receive: {exc}")
 
-        if ready_receive_sockets:  # not empty
-            ascii_message = self.__socket.recv(1024)
-            log.info(f"Received Ascii Message: {ascii_message}")
-            can_message = convert_ascii_message_to_can_message(
-                ascii_message.decode("ascii")
-            )
-            return can_message, False
-
-        # socket wasn't readable or timeout occurred
-        return None, False
+        try:
+            if ready_receive_sockets:  # not empty
+                ascii_message = self.__socket.recv(1024)
+                log.info(f"Received Ascii Message: {ascii_message}")
+                can_message = convert_ascii_message_to_can_message(
+                    ascii_message.decode("ascii")
+                )
+                return can_message, False
+            # socket wasn't readable or timeout occurred
+            log.info("Socket not ready")
+            return None, False
+        except Exception as e:
+            log.error(f"Failed to receive: {exc}  {traceback.format_exc()}")
+            raise can.CanError(f"Failed to receive: {exc}  {traceback.format_exc()}")
 
     def _tcp_send(self, message: str):
         log.debug(f"Sending Tcp Message: '{message}'")
