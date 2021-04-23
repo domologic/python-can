@@ -4,7 +4,7 @@ import select
 import logging
 import time
 import traceback
-
+from collections import deque
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -75,6 +75,7 @@ class SocketCanDaemonBus(can.BusABC):
         self.__host = host
         self.__port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__message_buffer = deque()
         connect_to_server(self.__socket, self.__host, self.__port)
         log.info(
             f"SocketCanDaemonBus: connected with address {self.__socket.getsockname()}"
@@ -84,24 +85,39 @@ class SocketCanDaemonBus(can.BusABC):
         super().__init__(channel=channel, can_filters=can_filters)
 
     def _recv_internal(self, timeout):
+        if len(self.__message_buffer) != 0:
+            can_message = self.__message_buffer.popleft()
+            return can_message, False
+
         try:
             # get all sockets that are ready (can be a list with a single value
             # being self.socket or an empty list if self.socket is not ready)
             ready_receive_sockets, _, _ = select.select(
                 [self.__socket], [], [], timeout
             )
-        except Exception as exc:
+        except socket.error as exc:
             # something bad happened (e.g. the interface went down)
-            log.error(f"Failed to receive: {exc}  {traceback.format_exc()}")
-            raise can.CanError(f"Failed to receive: {exc}  {traceback.format_exc()}")
+            log.error(f"Failed to receive: {exc}")
+            raise can.CanError(f"Failed to receive: {exc}")
 
         try:
             if ready_receive_sockets:  # not empty
-                ascii_message = self.__socket.recv(1024)
+                ascii_message = self.__socket.recv(1024).decode("ascii")  # may contain multiple messages
                 log.info(f"Received Ascii Message: {ascii_message}")
-                can_message = convert_ascii_message_to_can_message(
-                    ascii_message.decode("ascii")
-                )
+                end_index = 0
+                while True:
+                    start_index = end_index  # end_index will be the index after '>'
+                    end_index = ascii_message.find(" >", start_index)
+                    if end_index < 0:
+                        log.warning(f"Failed to find closing ' >' => Discarding message {ascii_message[start_index:]}")
+                        break
+                    end_index += 2
+                    single_message = ascii_message[start_index:end_index]
+                    can_message = convert_ascii_message_to_can_message(single_message)
+                    self.__message_buffer.append(can_message)
+                    if end_index == len(ascii_message):
+                        break
+                can_message = self.__message_buffer.popleft()
                 return can_message, False
             # socket wasn't readable or timeout occurred
             log.info("Socket not ready")
