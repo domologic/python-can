@@ -102,14 +102,18 @@ class SocketCanDaemonBus(can.BusABC):
 
         try:
             if ready_receive_sockets:  # not empty
-                ascii_message = self.__socket.recv(1024).decode("ascii")  # may contain multiple messages
+                ascii_message = self.__socket.recv(1024).decode(
+                    "ascii"
+                )  # may contain multiple messages
                 log.info(f"Received Ascii Message: {ascii_message}")
                 end_index = 0
                 while True:
                     start_index = end_index  # end_index will be the index after '>'
                     end_index = ascii_message.find(" >", start_index)
                     if end_index < 0:
-                        log.warning(f"Failed to find closing ' >' => Discarding message {ascii_message[start_index:]}")
+                        log.warning(
+                            f"Failed to find closing ' >' => Discarding message {ascii_message[start_index:]}"
+                        )
                         break
                     end_index += 2
                     single_message = ascii_message[start_index:end_index]
