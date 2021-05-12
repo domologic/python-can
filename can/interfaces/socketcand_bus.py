@@ -7,7 +7,7 @@ import traceback
 from collections import deque
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 def _compose_arbitration_id(message: can.Message) -> int:
@@ -105,7 +105,7 @@ class SocketCanDaemonBus(can.BusABC):
                 ascii_message = self.__socket.recv(1024).decode(
                     "ascii"
                 )  # may contain multiple messages
-                log.info(f"Received Ascii Message: {ascii_message}")
+                log.debug(f"Received Ascii Message: {ascii_message}")
                 end_index = 0
                 while True:
                     start_index = end_index  # end_index will be the index after '>'
@@ -124,7 +124,7 @@ class SocketCanDaemonBus(can.BusABC):
                 can_message = self.__message_buffer.popleft()
                 return can_message, False
             # socket wasn't readable or timeout occurred
-            log.info("Socket not ready")
+            log.debug("Socket not ready")
             return None, False
         except Exception as e:
             log.error(f"Failed to receive: {exc}  {traceback.format_exc()}")
