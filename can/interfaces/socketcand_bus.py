@@ -129,7 +129,9 @@ class SocketCanDaemonBus(can.BusABC):
                 if end == -1:
                     log.warning("Got incomplete message => waiting for more data")
                     if len(buffer_view) > 200:
-                        log.warning("Incomplete message exceeds 200 chars => Discarding")
+                        log.warning(
+                            "Incomplete message exceeds 200 chars => Discarding"
+                        )
                         chars_processed_successfully = len(self.__receive_buffer)
                     break
                 chars_processed_successfully += end + 1
