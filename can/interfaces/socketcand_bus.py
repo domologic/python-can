@@ -107,7 +107,9 @@ class SocketCanDaemonBus(can.BusABC):
                 log.debug("Socket not ready")
                 return None, False
 
-            ascii_message = self.__socket.recv(1024).decode("ascii")  # may contain multiple messages
+            ascii_message = self.__socket.recv(1024).decode(
+                "ascii"
+            )  # may contain multiple messages
             self.__receive_buffer += ascii_message
             log.debug(f"Received Ascii Message: {ascii_message}")
             buffer_view = self.__receive_buffer
@@ -118,24 +120,34 @@ class SocketCanDaemonBus(can.BusABC):
 
                 start = buffer_view.find("<")
                 if start == -1:
-                    log.warning(f"Bad data: No opening < found => discarding entire buffer '{buffer_view}'")
+                    log.warning(
+                        f"Bad data: No opening < found => discarding entire buffer '{buffer_view}'"
+                    )
                     chars_processed_successfully = len(self.__receive_buffer)
                     break
                 end = buffer_view.find(">")
                 if end == -1:
                     log.warning("Got incomplete message => waiting for more data")
                     break
-                chars_processed_successfully += (end + 1)
-                single_message = buffer_view[start: end + 1]
-                parsed_can_message = convert_ascii_message_to_can_message(single_message)
+                chars_processed_successfully += end + 1
+                single_message = buffer_view[start : end + 1]
+                parsed_can_message = convert_ascii_message_to_can_message(
+                    single_message
+                )
                 if parsed_can_message is None:
                     log.warning(f"Invalid Frame: {single_message}")
                 else:
                     self.__message_buffer.append(parsed_can_message)
-                buffer_view = buffer_view[end + 1:]
+                buffer_view = buffer_view[end + 1 :]
 
-            self.__receive_buffer = self.__receive_buffer[chars_processed_successfully + 1:]
-            can_message = None if len(self.__message_buffer) == 0 else self.__message_buffer.popleft()
+            self.__receive_buffer = self.__receive_buffer[
+                chars_processed_successfully + 1 :
+            ]
+            can_message = (
+                None
+                if len(self.__message_buffer) == 0
+                else self.__message_buffer.popleft()
+            )
             return can_message, False
 
         except Exception as e:
