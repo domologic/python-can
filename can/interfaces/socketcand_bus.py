@@ -76,6 +76,7 @@ class SocketCanDaemonBus(can.BusABC):
         self.__port = port
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__message_buffer = deque()
+        self.__receive_buffer = ""  # i know string is not the most efficient here
         connect_to_server(self.__socket, self.__host, self.__port)
         log.info(
             f"SocketCanDaemonBus: connected with address {self.__socket.getsockname()}"
@@ -101,31 +102,42 @@ class SocketCanDaemonBus(can.BusABC):
             raise can.CanError(f"Failed to receive: {exc}")
 
         try:
-            if ready_receive_sockets:  # not empty
-                ascii_message = self.__socket.recv(1024).decode(
-                    "ascii"
-                )  # may contain multiple messages
-                log.debug(f"Received Ascii Message: {ascii_message}")
-                end_index = 0
-                while True:
-                    start_index = end_index  # end_index will be the index after '>'
-                    end_index = ascii_message.find(" >", start_index)
-                    if end_index < 0:
-                        log.warning(
-                            f"Failed to find closing ' >' => Discarding message {ascii_message[start_index:]}"
-                        )
-                        break
-                    end_index += 2
-                    single_message = ascii_message[start_index:end_index]
-                    can_message = convert_ascii_message_to_can_message(single_message)
-                    self.__message_buffer.append(can_message)
-                    if end_index == len(ascii_message):
-                        break
-                can_message = self.__message_buffer.popleft()
-                return can_message, False
-            # socket wasn't readable or timeout occurred
-            log.debug("Socket not ready")
-            return None, False
+            if not ready_receive_sockets:
+                # socket wasn't readable or timeout occurred
+                log.debug("Socket not ready")
+                return None, False
+
+            ascii_message = self.__socket.recv(1024).decode("ascii")  # may contain multiple messages
+            self.__receive_buffer += ascii_message
+            log.debug(f"Received Ascii Message: {ascii_message}")
+            buffer_view = self.__receive_buffer
+            chars_processed_successfully = 0
+            while True:
+                if len(buffer_view) == 0:
+                    break
+
+                start = buffer_view.find("<")
+                if start == -1:
+                    log.warning(f"Bad data: No opening < found => discarding entire buffer '{buffer_view}'")
+                    chars_processed_successfully = len(self.__receive_buffer)
+                    break
+                end = buffer_view.find(">")
+                if end == -1:
+                    log.warning("Got incomplete message => waiting for more data")
+                    break
+                chars_processed_successfully += (end + 1)
+                single_message = buffer_view[start: end + 1]
+                parsed_can_message = convert_ascii_message_to_can_message(single_message)
+                if parsed_can_message is None:
+                    log.warning(f"Invalid Frame: {single_message}")
+                else:
+                    self.__message_buffer.append(parsed_can_message)
+                buffer_view = buffer_view[end + 1:]
+
+            self.__receive_buffer = self.__receive_buffer[chars_processed_successfully + 1:]
+            can_message = None if len(self.__message_buffer) == 0 else self.__message_buffer.popleft()
+            return can_message, False
+
         except Exception as e:
             log.error(f"Failed to receive: {exc}  {traceback.format_exc()}")
             raise can.CanError(f"Failed to receive: {exc}  {traceback.format_exc()}")
